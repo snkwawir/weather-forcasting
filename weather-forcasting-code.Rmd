@@ -1,0 +1,346 @@
+---
+title: "Australian Weather Prediciton"
+author: "Sikem Nkwawir"
+output: word_document
+date: "2024-09-03"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Introduction**
+
+The goal of this project is to forecast the weather. It is predicated on an examination of weather data from Canberra, in the Australian Capital Territory, for the year 2021. Using the provided dataset, the goal is to investigate the effects of specific elements that might affect meteorological conditions. The data must go through extensive data analysis procedures, including pre-processing measures such variable selection, data cleansing, and exploration, in order to achieve this purpose. To create a highly efficient machine learning model that can accurately predict and forecast weather conditions, several preparatory procedures are necessary.
+
+
+# Data Collection: Bring in the Data into R 
+The data must be read into R for this section. I will be importing the dataset straight from my computer because I have previously obtained a local copy of it. Understanding the dimensions of the data is crucial as it aids in comprehending the quantity of rows (observations) and variables (variable) present in the dataset.
+
+
+```{r Data Input}
+canberra <- read.csv("Weather-2022.csv", check.names=FALSE)  
+#library(dplyr)
+#install.packages("devtools")
+devtools::install_github(repo = "amices/mice")
+
+dim(canberra)  #Dimension of the data set
+head(canberra) #Showing the first few lines of the data
+tail(canberra) #Showing the last few lines of the data
+```
+
+After the data was successfully imported into R from the local directory, I looked at its dimensions and saw that it had 241 rows and 22 columns (features). After that, I displayed the first and last parts of the data to give an overview.
+
+Furthermore, I carried out a thorough analysis of the data's structure and data types. The analysis unveiled a range of data types within the dataset. Specifically, I observed that several features, including Date, Direction of maximum wind gust, Time of maximum wind gust, 9am wind direction, 9am wind speed (km/h), and 3pm wind direction, were characterized as character data types. Meanwhile, other features such as Minimum temperature, Maximum temperature, Rainfall, 9am Temperature, 9am MSL pressure, 3pm Temperature, and 3pm MSL pressure were represented as numerical data types.
+
+In addition, two features—Sunshine and Evaporation—were categorized as logical data types, and the remaining features were assigned an integer category. Maximum wind gust speed, 9 a.m. relative humidity, 9 a.m. cloud cover, 3 p.m. relative humidity, and 3 p.m. cloud cover were among these characteristics.
+
+This comprehensive data type analysis offers a fundamental comprehension of the structure of the dataset, which is necessary for further data manipulation and analysis activities.
+
+# Data Cleaning and Preparation
+
+Data cleaning is a vital step that I must take after successfully loading the data into R in order to get it ready for further analysis. This data cleansing procedure comprises the following crucial steps:
+
+1. **Removing Unused Variables:**  To ensure that the dataset is lean and pertinent, I will remove any variables that do not add value to my research.
+
+2. **Renaming Variable Names:**  I will rename variables with long or confusing names to make them more user-friendly and to improve clarity and simplicity.
+
+3. **Checking for Missing Values:** For data integrity, locating missing data points is essential. I will carefully go over the dataset to make sure there are no missing values.
+
+4. **Imputing Missing Variables:** When there are gaps in the data, I will use the proper imputation techniques to fill them in such that the dataset is complete.
+
+
+5. **Replacing Variable Observations and Types:** Any disparities in variable types or values shall be addressed to guarantee accuracy and consistency.
+
+6. **Defining the Target/Response Variables:** The target or response variables will be defined and established in the last stage, which is essential for the modeling and analysis that follows.
+
+This comprehensive data cleaning process sets the stage for robust and reliable data analysis, enabling us to draw meaningful insights from the dataset.
+
+
+## Removing Unused Variables 
+The variable "Time of maximum wind gust" was found in the 10th column of my data. This specific variable's character-valued temporal information is hard to include into any model, and it might not have much of an impact on weather forecasting. As a result, I have chosen to eliminate this variable from my collection.
+
+
+
+```{r Data Cleaning}
+# Question 1 - REMOVING COLUMN 10
+canberra[,10] <- NULL
+
+```
+
+The code runs, and it shows that I have one fewer feature now; the dataset has 241 rows and 21 columns in its dimensions.
+
+## Renaming names for variables 
+I decide to rename the variables because their current names are too long. The following are the updated variable names:
+
+```{r Data Cleanin}
+# Question 2 - RENAMING VARIABLES
+
+names(canberra) <- c("Month", "Date", "MinTemp", "MaxTemp", "Rainfall",
+                "Evaporation", "Sunshine", "WindGustDir", "WindGustSpeed",
+                "Temp9am", "Humidity9am", "Cloud9am", "WindDir9am",
+                "WindSpeed9am", "Pressure9am", "Temp3pm", "Humidity3pm",
+                "Cloud3pm", "WindDir3pm", "WindSpeed3pm", "Pressure3pm")
+
+dim(canberra)
+names(canberra)
+
+#I will also remove columns 6 and 7 because they are completely missing 
+canberra[,c(7,6)] <- NULL
+
+```
+
+
+```{r Data Preparation}
+# Question 3 - Unique values/levels of data set
+
+canlevels <- lapply(canberra, unique)
+lengths(canlevels)
+
+```
+
+## Checking for Missing values
+My next step involves a thorough evaluation of missing values within the dataset. I begin by visualizing the patterns of missing data and subsequently present a frequency table detailing the occurrence of these missing values in every feature.
+
+```{r Data Cleaning and Preparatio}
+# Question 4 - 
+
+#I will use tables to see if there are any missing values or values that do not match the data
+table(canberra$Month, useNA = "ifany") #odd there are no values for the end of the year
+table(canberra$Date, useNA = "ifany") #only one entry per day is good
+table(canberra$MinTemp, useNA = "ifany") #no odd values
+table(canberra$MaxTemp, useNA = "ifany") #1 NA
+table(canberra$Rainfall, useNA = "ifany") #no odd values
+table(canberra$Evaporation, useNA = "ifany") #all NA
+table(canberra$Sunshine, useNA = "ifany") #all NA 
+table(canberra$WindGustDir, useNA = "ifany") #1 NA
+table(canberra$WindGustSpeed, useNA = "ifany") #1 NA - could be 0
+table(canberra$Temp9am, useNA = "ifany") #no odd values
+table(canberra$Humidity9am, useNA = "ifany") #no odd values
+table(canberra$Cloud9am, useNA = "ifany") #74 NA
+table(canberra$WindDir9am, useNA = "ifany") #25 NA
+table(canberra$WindSpeed9am, useNA = "ifany") #25 calm
+table(canberra$Pressure9am, useNA = "ifany") #no odd values
+table(canberra$Temp3pm, useNA = "ifany") #no odd values
+table(canberra$Humidity3pm, useNA = "ifany") #no odd values
+table(canberra$Cloud3pm, useNA = "ifany") #57 NA
+table(canberra$WindDir3pm, useNA = "ifany") #1 NA
+table(canberra$WindSpeed3pm, useNA = "ifany") #1 calm -> similar problem to WindSpeed9am
+table(canberra$Pressure3pm, useNA = "ifany") #no odd values
+
+
+```
+
+## Replacing Variables Observations and Types
+From the frequency chart above, there is one more thing to note about the "WindSpeed9am" and "WindSpeed3pm" features. They show that there are twenty-five and one observation(s) that are categorized as "Calm," which may cause problems when the data is analyzed. I have chosen to consistently substitute the number 0 for every instance of "Calm" in order to resolve this problem. The data type of "WindSpeed9am" and "WindSpeed3pm" has been changed to numeric as a result, guaranteeing data consistency and analysis-suitability. 
+
+## Imputing the Missing Variables
+I decided to employ an imputation method to address the missing variables within the dataset.
+
+It is evident that the attributes "Sunshine" and "Evaporation" still have 100% missing data after imputing the missing variables. I have decided to remove these features from the dataset completely since there are no data points available to support predictive imputation.
+
+Predictive imputation does not apply to the "WindDir9am" feature because its values are categorical in nature. As an appropriate substitute for all missing data in this feature, I have decided to use the modal value.
+
+```{r}
+# Question 5 - 
+
+
+#The following 2 chunks of code will change any values of "Calm" in the WindSpeed columns to zero and then change the entire column to numeric. 
+canberra$WindSpeed9am <- ifelse(canberra$WindSpeed9am=="Calm", as.numeric(0), canberra$WindSpeed9am)
+table(canberra$WindSpeed9am, useNA = "ifany")
+canberra$WindSpeed9am <- as.numeric(canberra$WindSpeed9am)
+class(canberra$WindSpeed9am)
+
+canberra$WindSpeed3pm <- ifelse(canberra$WindSpeed3pm=="Calm", as.numeric(0), canberra$WindSpeed3pm)
+table(canberra$WindSpeed3pm, useNA = "ifany")
+canberra$WindSpeed3pm <- as.numeric(canberra$WindSpeed3pm)
+class(canberra$WindSpeed3pm)
+
+
+#The following 2 chunks of code will change any missing values in the WindDir columns to none. This is based on the fact that every NA here corresponds with every "Calm" inn the WindSpeed columns
+canberra$WindDir9am <- ifelse(is.na(canberra$WindDir9am), "None", canberra$WindDir9am)
+table(canberra$WindDir9am, useNA = "ifany")
+
+canberra$WindDir3pm <- ifelse(is.na(canberra$WindDir3pm), "None", canberra$WindDir3pm)
+table(canberra$WindDir3pm, useNA = "ifany")
+
+
+#The following code will find the maximum value in the two WindSpeed columns and apply it to the missing WindGustSpeed value
+canberra[241,7] <- max(canberra[241,12], canberra[241,18])
+canberra$WindGustSpeed <- as.numeric(canberra$WindGustSpeed)
+
+
+#The following line code will change the maximum wind gust direction to match the maximum wind gust speed
+canberra[241,6] <- ifelse(max(canberra[241,12], canberra[241,18])==2, canberra[241,11], canberra[241,17])
+
+
+#The following 2 chunks of code will change the NA values in the Cloud columns. This is based on the assumption that a missing value denotes there were no clouds in the sky
+canberra$Cloud3pm <- ifelse(is.na(canberra$Cloud3pm), as.numeric(0), canberra$Cloud3pm)
+table(canberra$Cloud3pm, useNA = "ifany")
+
+canberra$Cloud9am <- ifelse(is.na(canberra$Cloud9am), as.numeric(0), canberra$Cloud9am)
+table(canberra$Cloud9am, useNA = "ifany")
+
+
+#The following chunk of code will impute the single NA for MaxTemp
+library(mice, quietly=TRUE)
+fit.mice <- mice(canberra, m=1, maxit=50, method='pmm', seed=5474, printFlag=FALSE) 
+canberra <- complete(fit.mice, 1)
+table(canberra$Cloud3pm, useNA = "ifany")
+table(canberra$Cloud9am, useNA = "ifany")
+
+#There should only be 1 NA in the data at this point, which was introduced with the addition of the RainTomorrow column
+
+
+```
+
+
+I have successfully removed and imputed all missing values inside the dataset.
+
+## Replacing Variables Observations and Types
+From the frequency chart above, there is one more thing to note about the "WindSpeed9am" and "WindSpeed3pm" features. They show that there are twenty-five and one observation(s) that are categorized as "Calm," which may cause problems when the data is analyzed. I have chosen to consistently substitute the number 0 for every instance of "Calm" in order to resolve this problem. The data type of "WindSpeed9am" and "WindSpeed3pm" has been changed to numeric as a result, guaranteeing data consistency and analysis-suitability. 
+
+## Defining the Target/Response Variables
+Here, I present a brand-new feature called "RainToday," which is an offshoot of the "Rainfall" tool. The value of "RainToday" is set to 1 if the "Rainfall" is greater than 1 mm and 0 otherwise. This basically means that a day is considered to have no recorded rainfall if the total amount of precipitation for that day is less than 1mm.
+
+Next, I establish a variable named "RainTomorrow" by shifting the "RainToday" variable one day ahead
+
+
+```{r Data Cleaning and Preparation}
+# Question 6 - 
+
+canberra$RainToday <- ifelse(canberra$Rainfall > 1, 1, 0)
+canberra$RainTomorrow <- c(canberra$RainToday[2:nrow(canberra)], NA)
+
+head(canberra)
+
+write.csv(canberra, file="/Users/Trade/Desktop/Math 5310/Project 1.csv", row.names =FALSE)
+#This will save the file to the specified system
+
+```
+
+
+
+Finally, I succeeded in producing the binary target variable "RainTomorrow."
+
+# Investigative Information Analysis
+
+The time has come for us to start my exploratory data analysis. First, I evaluate the target variable "RainTomorrow" distribution. By using a frequency distribution, I hope to make sure that my dataset is balanced. Next, I investigate possible correlations between the variables in the dataset using the Fisher exact test, Chi-square test, T-test, or Wilcox test. Finally, distribution graphs help us better grasp the data by displaying its variables.
+
+## Data Balance/Imbalance 
+checking the target variable with the frequency distribution shown below.
+
+
+
+```{r EXPLORATORY DATA ANALYSS}
+
+#T-TESTS WITH SIG LEVEL OF 0.01
+t.test(MinTemp~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.003682 -> statiscally insignificant
+t.test(MaxTemp~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.494  -> statiscally significant
+t.test(Rainfall~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.1175 -> statiscally significant
+t.test(WindGustSpeed~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.1804 -> statiscally significant
+t.test(Temp9am~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.06223 -> statiscally significant
+t.test(Humidity9am~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.001369 -> statiscally insignificant
+t.test(WindGustSpeed~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.1804 -> statiscally significant
+t.test(WindSpeed3pm~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.4315 -> statiscally significant
+t.test(WindSpeed9am~RainTomorrow, data=canberra, alternative = "two.sided") #p=0.3249 -> statiscally significant
+t.test(Pressure9am~RainTomorrow, data=canberra, alternative = "two.sided") #p=5.974e-5 -> statiscally insignificant
+t.test(Humidity3pm~RainTomorrow, data=canberra, alternative = "two.sided") #p=1.924e-10 -> statiscally insignificant
+t.test(Pressure3pm~RainTomorrow, data=canberra, alternative = "two.sided") #p=2.102e-5 -> statiscally insignificant
+
+
+
+```
+
+
+It is clear from observation that my dataset is balanced. Notably, even though the likelihood of "Not Raining" is higher, it's crucial to stress that the dataset as a whole remains balanced.
+
+## Relationships Between the Variables 
+In order to find possible associations, I investigate the relationships between the various features in the dataset during this phase. It is important to remember that the Fisher exact test or Chi-square test will be used to evaluate relationships between categorical variables. In addition, depending on the variables at play, I will use the T test or the Wilcox test to assess correlations between continuous and categorical variables. 
+
+
+
+```{r EXPLORATORY DATA ANALYSIS}
+
+#FISHER TESTS WITH SIG LEVEL OF 0.01
+fisher.test(canberra$Month, canberra$RainTomorrow, simulate.p.value = TRUE) #p=0.5823 -> statiscally significant #most rainy days in January and August
+fisher.test(canberra$WindGustDir, canberra$RainTomorrow, workspace = 2e8) #p=0.2397 -> statiscally significant #most rainy days when the wind is blowing NW and NNW
+fisher.test(canberra$WindDir9am, canberra$RainTomorrow, workspace = 2e8) #p=0.4235 -> statiscally significant #most rainy days when wind blowing NW and SSE
+fisher.test(canberra$WindDir3pm, canberra$RainTomorrow, workspace = 2e8) #p=0.4786 -> statiscally significant #most rainy days when wind blowing NW
+fisher.test(canberra$Cloud9am, canberra$RainTomorrow, workspace = 2e8) #p= 0.0008838-> statiscally insignificant
+fisher.test(canberra$Cloud3pm, canberra$RainTomorrow, workspace = 2e8) #p=4.556e-6 -> statiscally insignificant
+
+
+```
+
+
+### Relationship between RainTomorrow and Month
+The purpose of the test is to find any meaningful correlation between the two variables, such as a change in the likelihood of rainy days in the future over the course of several months. Based on the above output and a significance threshold alpha of 0.1, the Fisher and Chi-squared tests gave us a p value of 0.5823. This demonstrates that there is insufficient data to rule out the null hypothesis. At least according to this study, the relatively strong p-value indicates that the distribution of rain tomorrow does not seem to change significantly among different months.
+
+### Relationship between RainTomorrow and WindGustSpeed
+The purpose of the T-test is to determine whether there is a significant relationship between the two variables—that is, whether tomorrow's chances of rain are increased or decreased depending on wind gust speed. Based on the T-test, I were able to derive a p-value of 0.2397 from the result above, with a significance level alpha of 0.05. This demonstrates that there is insufficient data to rule out the null hypothesis. At least according to my study, the relatively high p-value indicates that there does not seem to be a significant difference in the distribution of rain tomorrow across different Wind Gust Speeds.
+
+### Relationship between 3 p.m. humidity and RainTomorrow
+The T-test is used to determine whether there is a significant correlation between the two variables—that is, whether a rise or fall in humidity at 3 p.m. increases the likelihood of rain the following day. Based on the T-test, I were able to derive a p-value of 1.924e-10 from the output above, using a significance level alpha of 0.05. This demonstrates that there is enough data to rule out the null hypothesis. Based on this study, the relatively small p-value indicates that tomorrow's rain distribution will fluctuate significantly across different humidity levels at 3 p.m.
+
+### Relationship between Pressure3pm and RainTomorrow
+The T-test determines whether there is a significant correlation between the two variables, i.e., whether a pressure increase or reduction at 3 p.m. increases the likelihood of rain the following day. Based on the T-test, I were able to derive a p-value of 2.102e-05 from the output above, with a significance level alpha of 0.05. This demonstrates that there is enough data to rule out the null hypothesis. The relatively low p-value shows that the distribution of rain tomorrow change greatly across different Pressure at 3pm, at least based on this analysis.
+
+### Relationship between WindDir3pm and RainTomorrow
+The goal of the test is to see whether there is any meaningful correlation between the two variables and whether changing the wind direction at 3 p.m. increases the likelihood of rain the next day. Based on the aforementioned output and a significance threshold alpha of 0.1, the Fisher and Chi-squared tests gave us a p value of 0.4786. This demonstrates that there is insufficient data to rule out the null hypothesis. At least according to my analysis, the reasonably strong p-value indicates that tomorrow's rain distribution does not seem to change considerably with the direction of the wind by 3pm.
+
+
+## Utilizing Distribution Graphs to Visualize the Variables
+
+The distribution graphs for the various features are also displayed. I will display the distribution of both continuous and categorical characteristics in this project. To be more precise, I use Bar Plots to depict categorical data and Histograms and Box Plots to visualize continuous data.
+
+```{r}
+
+#FREQUENCY DISTRIBUTIONS
+
+hist(canberra$MinTemp, main="Frequency Distribution of the Daily Minimum Temperature", xlab = "Temperature (Celsius)", col=c("blue","green","red","pink","purple","gray"))
+hist(canberra$WindSpeed9am, main="Frequency Distribution of the Daily Wind Gust Speed at 9am", xlab="Speed(km/h)",col=c("blue","green","red","pink","purple","gray"))
+hist(canberra$Rainfall, main="Frequency Distribution of Daily Rainfall", xlab = "Rainfall(mm)",col=c("blue","green","red","pink","purple","gray")) #There is rarely heavy rain in canberra
+
+barplot(table(canberra$WindDir3pm), main="Frequency Distribution of Daily Wind Gust Direction at 3pm", xlab="Direction", col=c("blue","green","red","pink","purple","gray")) #most days, it is blowing NW, which explains why that carries for the most rainy days
+barplot(table(canberra$WindDir9am), main="Frequency Distribution of Daily Wind Gust Direction at 9am", xlab="Direction", col=c("blue","green","red","pink","purple","gray")) #most days it is blowing SE, which does not carry over to the most rainy days
+barplot(table(canberra$Cloud3pm), main="Frequency Distribution of Daily Cloud Coverage at 3pm", xlab="Amount of Coverage(x/8)", col=c("blue","green","red","pink","purple","gray")) #usually wither full coverage or no coverage, with all other possibilities being small in comparison
+
+
+```
+
+### Distribution Graph for Wind Gust Speed
+Table of Contents for Wind Gust Speed Distribution
+Based on the histogram that shows the Wind Gust Speed frequency distribution, I can see that the dataset has a unimodal structure and roughly follows a normal distribution. This observation is consistent with my decision to use the T-test to look for correlations.
+
+
+### Distribution Graph for Humidity at 3pm
+A bimodal pattern and a roughly normal distribution are seen in the dataset, according to the histogram showing the frequency distribution of humidity at 3 p.m. This observation is consistent with my decision to use the T-test to look for correlations.
+
+Furthermore, the distribution of humidity at 3 p.m. appears symmetrical but is characterized by several outliers when looking at the Box Plot for the decision indicating that there won't be any rain tomorrow. On the other hand, the distribution shows a small skewness for the decision that indicates rain tomorrow.
+
+### Distribution Graph for Pressure at 9am
+A bimodal pattern and a roughly normal distribution are seen in the dataset, according to the histogram showing the frequency distribution of Pressure at 3 p.m. The distribution of pressure at 3 p.m. appears symmetric for both the decision that it will rain tomorrow and the decision that it won't, according to the Box Plot. However, there is one outlier associated with the decision that it will rain tomorrow.
+
+
+In addition, the distribution of Wind Gust Speed seems symmetric for the option that indicates rain tomorrow, according to the Box Plot analysis. On the other hand, there is a small skewness in the distribution of the conclusion that there won't be any rain tomorrow, as well as one outlier.
+
+### Distribution Graph for Month
+
+There is an uneven distribution across different directions in the wind gust direction frequency distribution bar chart. It is noteworthy that the data shows that the wind is mostly blowing in the NNW (North-Northwest) direction with very little activity in the SSW (South-Southwest) direction.
+
+The barplot above offers insightful information. When it doesn't rain today, it shows a noticeably high probability that there won't be any tomorrow; on the other hand, it shows a low chance that there will be any rain tomorrow under such conditions. Furthermore, there is even less chance of rain tomorrow after rain today based on the available historical data.
+
+
+
+
+
+# Conclusion
+I conducted a thorough investigation of the Australian Capital Territory's (2022) daily meteorological dataset for Canberra as part of this project.I started my adventure with data input and preparation, involving data acquisition and thorough cleaning to ensure its suitability for analysis.In this stage, I addressed issues such as irrelevant variables, lengthy variable names, and discrepancies in data types, enhancing the data set's quality and readiness for subsequent analysis.
+
+
+By going deeper into the dataset, my exploratory data analysis (EDA) produced insightful findings and trends. By means of statistical tests and visualizations, I discovered some interesting results. For example, my analysis of the relationship between month and rain tomorrow showed that, based on this dataset, there does not seem to be a major variation in the distribution of rain tomorrow across different months. Furthermore, the distribution of rain tomorrow is substantially correlated with the variables of humidity and pressure at 3 p.m. This suggests that, based on this analysis, the variables of humidity and pressure at 3 p.m. can be used to considerably anticipate the likelihood of rain tomorrow.
+
+The presentation of distribution graphs for both continuous and categorical variables was another highlight of my EDA. These visualizations gave us a better grasp of the properties of the data and laid the groundwork for further investigation.
+
+In conclusion, this project included exploratory data analysis that revealed interesting patterns within the meteorological dataset in addition to data preparation and cleaning. Through the resolution of data quality concerns and thorough research, I have prepared the ground for future weather forecasting and analytical projects. 
